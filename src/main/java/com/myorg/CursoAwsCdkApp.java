@@ -22,9 +22,16 @@ public class CursoAwsCdkApp {
 //        depende da criação do vpc
         clusterStack.addDependency(vpcStack);
 
+//Primeiro parâmetro é o nosso escopo, o 2º é Rds que é a identificação,
+        RdsStack rdsStack = new RdsStack(app, "Rds", vpcStack.vpc);
+//        Essa stack depende da stack de vpc
+        rdsStack.addDependency(vpcStack);
+
         Service01Stack service01Stack = new Service01Stack(app, "Service01", clusterStack.getCluster());
 //        Para criar o Service01Stack eu preciso primeiro ter criado um cluster, então eu dependo dele.
         service01Stack.addDependency(clusterStack);
+//        A nossa stack que faz o deployment do nosso serviço, também depende da stack que cria o BD
+        service01Stack.addDependency(rdsStack);
 
         app.synth();
     }

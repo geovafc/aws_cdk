@@ -9,6 +9,9 @@ import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedTaskI
 import software.amazon.awscdk.services.elasticloadbalancingv2.HealthCheck;
 import software.amazon.awscdk.services.logs.LogGroup;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Service01Stack extends Stack {
     //    Com o parÂmetro Cluster estou especificando qual custer vamos utilizar
     public Service01Stack(final Construct scope, final String id, Cluster cluster) {
@@ -17,6 +20,21 @@ public class Service01Stack extends Stack {
 
     public Service01Stack(final Construct scope, final String id, final StackProps props, Cluster cluster) {
         super(scope, id, props);
+
+//        Vamos utilizar o valor que estão sendo exportados no RDSStack e vamos passar para a nossa aplicaçãp
+//        por meio de variáveis de ambiente.
+        Map<String, String> environmentVariables = new HashMap<>();
+//        O valor do endpoint do BD está sendo do valor que está sendo exportado na stack do RDS
+//        jdbc:mariadb: é o conector que nós vamos utilizar + o endpoint de acesso que é o endereço da nossa instância
+//        + a porta configurada na stack do RDS + o nome do schema que irá conter a nossa tabela (o schema )
+//        é criado por nós.
+        environmentVariables.put("SPRING_DATASOURCE_URL", "jdbc:mariadb://"+Fn.importValue("rds-endpoint")+ ":3306/aws_project01?createDatabaseIfNotExist=true");
+
+// Usuário utilizado na definição da instância do banco de dados
+        environmentVariables.put("SPRING_DATASOURCE_USERNAME", "admin");
+//        Importo a variável exportada pelo RdsStack que é a senha utilizada para configurar a instância
+
+        environmentVariables.put("SPRING_DATASOURCE_PASSWORD", Fn.importValue("rds-password"));
 
         ApplicationLoadBalancedFargateService service01 = ApplicationLoadBalancedFargateService
                 .Builder
@@ -38,7 +56,7 @@ public class Service01Stack extends Stack {
 //                computacionais e principalmente a versão da imagem docker.
                 .taskImageOptions(
 //                        Imagem do docker que vamos utilizar dentro do nosso serviço
-                        buildApplicationLoadBalancedTaskImageOptions()
+                        buildApplicationLoadBalancedTaskImageOptions(environmentVariables)
                 )
 //                Digo que meu load balancer é público. Eu poderia criar um interno também, que somente
 //                os meus recursos da aws teriam acesso a ele.
@@ -72,7 +90,7 @@ public class Service01Stack extends Stack {
         );
     }
 
-    private ApplicationLoadBalancedTaskImageOptions buildApplicationLoadBalancedTaskImageOptions() {
+    private ApplicationLoadBalancedTaskImageOptions buildApplicationLoadBalancedTaskImageOptions(Map<String, String> environmentVariables) {
         return ApplicationLoadBalancedTaskImageOptions.builder()
 //                                Nome do container
                 .containerName("aws_project01")
@@ -88,6 +106,9 @@ public class Service01Stack extends Stack {
 //                      a nossa aplicação para poder ver nossos logs
                         buildLogDriver()
                 )
+//                Vamos inserir variáveis de ambiente dentro da definição da nossa tarefa criada
+//                no ECS
+                .environment(environmentVariables)
                 .build();
     }
 

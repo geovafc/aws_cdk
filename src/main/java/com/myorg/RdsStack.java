@@ -26,6 +26,7 @@ public class RdsStack extends Stack {
 //        Cfn = Cloud Formation Parameter
 //        Parameter que será usada no deploy com as informações da senha do banco de dados. databasePassword
 //        é o nome do parâmetro
+//        CfnParameter é um parâmetro de entrada
         CfnParameter databasePassword = CfnParameter.Builder.create(this, "databasePassword")
                 .type("String")
                 .description("The RDS instance password")
@@ -81,5 +82,22 @@ public class RdsStack extends Stack {
                         .build())
                 .build();
 
+//        Vamos precisar exportar os parâmetros dessa stack do RDS que poderá ser lido em outra stack
+//        A nossa stack que faz o deploy do nosso serviço, precisa saber duas coisas que foram geradas
+//        na stack que criou o banco de dados que são o endpoint de acesso ao banco de dados e a senha
+
+// O CfnOutput serve para exportar parâmetros, o nome do parâmetro é rds-endpoint que poderá ser lido por
+//        outra stack. Esse valor será acessado pela nossa aplicação spring boot
+        CfnOutput.Builder.create(this, "rds-endpoint")
+                .exportName("rds-endpoint")
+//  o valor desse parâmetro eu to buscando do objeto que estou usando pra criar a instância
+                .value(databaseInstance.getDbInstanceEndpointAddress())
+                .build();
+
+//        Exporta a senha;
+        CfnOutput.Builder.create(this, "rds-password")
+                .exportName("rds-password")
+                .value(databasePassword.getValueAsString())
+                .build();
     }
 }
