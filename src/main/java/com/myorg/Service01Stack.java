@@ -28,6 +28,10 @@ public class Service01Stack extends Stack {
 //        jdbc:mariadb: é o conector que nós vamos utilizar + o endpoint de acesso que é o endereço da nossa instância
 //        + a porta configurada na stack do RDS + o nome do schema que irá conter a nossa tabela (o schema )
 //        é criado por nós.
+
+//        O spring boot converte os nomes para minusculo e onde está '_' ele converte para '.'
+//        então por isso a aplicação quando está na AWS consegue acessar as variáveis de ambiente do
+//        container e passar os valores dela para a aplicação.
         environmentVariables.put("SPRING_DATASOURCE_URL", "jdbc:mariadb://"+Fn.importValue("rds-endpoint")+ ":3306/aws_project01?createDatabaseIfNotExist=true");
 
 // Usuário utilizado na definição da instância do banco de dados
@@ -95,7 +99,7 @@ public class Service01Stack extends Stack {
 //                                Nome do container
                 .containerName("aws_project01")
 //                        Localização da nossa imagem, pegar do docker hub e adicionar a versão da tag que vou usar
-                .image(ContainerImage.fromRegistry("fcgeovane/instadev_aws01:1.1.0"))
+                .image(ContainerImage.fromRegistry("fcgeovane/instadev_aws01:1.2.0"))
 //                      Porta que a minha aplicação vai rodar
                 .containerPort(8080)
 //                      Onde que os logs da minha aplicação vão aparecer
