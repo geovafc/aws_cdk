@@ -27,6 +27,10 @@ public class CursoAwsCdkApp {
 //        Essa stack depende da stack de vpc
         rdsStack.addDependency(vpcStack);
 
+//        Coloco a instância do tópico aqui porque ele será usado no nosso service, então precisa
+//        ser criado antes dele
+        SnsStack snsStack = new SnsStack(app, "Sns");
+
         Service01Stack service01Stack = new Service01Stack(app, "Service01", clusterStack.getCluster());
 //        Para criar o Service01Stack eu preciso primeiro ter criado um cluster, então eu dependo dele.
         service01Stack.addDependency(clusterStack);
