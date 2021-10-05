@@ -31,11 +31,18 @@ public class CursoAwsCdkApp {
 //        ser criado antes dele
         SnsStack snsStack = new SnsStack(app, "Sns");
 
-        Service01Stack service01Stack = new Service01Stack(app, "Service01", clusterStack.getCluster());
+        Service01Stack service01Stack = new Service01Stack(app, "Service01",
+                clusterStack.getCluster(), snsStack.getPostEventsTopic());
 //        Para criar o Service01Stack eu preciso primeiro ter criado um cluster, então eu dependo dele.
         service01Stack.addDependency(clusterStack);
 //        A nossa stack que faz o deployment do nosso serviço, também depende da stack que cria o BD
         service01Stack.addDependency(rdsStack);
+//        A nossa stack que faz o deployment do nosso serviço, também depende da stack do sns
+
+        service01Stack.addDependency(snsStack);
+
+        Service02Stack service02Stack = new Service02Stack(app, "Service02",
+                clusterStack.getCluster());
 
         app.synth();
     }
