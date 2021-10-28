@@ -1,5 +1,6 @@
 package com.myorg;
 
+import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.core.*;
 import software.amazon.awscdk.services.applicationautoscaling.EnableScalingProps;
 import software.amazon.awscdk.services.ecs.*;
@@ -8,21 +9,47 @@ import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedTaskI
 import software.amazon.awscdk.services.elasticloadbalancingv2.HealthCheck;
 import software.amazon.awscdk.services.events.targets.SnsTopic;
 import software.amazon.awscdk.services.logs.LogGroup;
+import software.amazon.awscdk.services.sns.subscriptions.SqsSubscription;
+import software.amazon.awscdk.services.sqs.DeadLetterQueue;
+import software.amazon.awscdk.services.sqs.Queue;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class Service02Stack extends Stack {
 
-    public Service02Stack(final Construct scope, final String id, Cluster cluster) {
-        this(scope, id, null, cluster);
+    public Service02Stack(final Construct scope, final String id, Cluster cluster, SnsTopic postEventsTopic) {
+        this(scope, id, null, cluster, postEventsTopic);
     }
 
-    public Service02Stack(final Construct scope, final String id, final StackProps props, Cluster cluster) {
+    public Service02Stack(final Construct scope, final String id, final StackProps props, Cluster cluster, SnsTopic postEventsTopic) {
         super(scope, id, props);
+
+//        Fila responsável por receber as mensagens que não forem tratadas pelo nosso consumidor (deram exceções na hora de tratar)
+//        Quando formos utilizar o DLQ, vamos precisar dessa fila.
+        DeadLetterQueue deadLetterQueue = buildDeadLetterQueue();
+
+//        Fila principal responsável por receber as mensagens
+        Queue postEventsQueue = Queue.Builder.create(this, "PostEvents")
+                .queueName("post-events")
+//                Fila para onde vou redirecionar as mensagens caso dê errado o tratamento no consumer
+                .deadLetterQueue(deadLetterQueue)
+                .build();
+
+//        Inscreve a fila dentro do tópico do SNS
+        SqsSubscription sqsSubscription = SqsSubscription.Builder
+//                Crio uma inscrição para essa fila
+                .create(postEventsQueue).
+                build();
+//      Pego o tópico e inscrevo a fila nele
+        postEventsTopic.getTopic().addSubscription(sqsSubscription);
+
+
 
         Map<String, String> environmentVariables = new HashMap<>();
         environmentVariables.put("AWS_REGION", "us-east-1");
+//        Nome da fila criada
+        environmentVariables.put("AWS_SQS_QUEUE_POST_EVENTS_NAME", postEventsQueue.getQueueName());
 
         ApplicationLoadBalancedFargateService service02 = ApplicationLoadBalancedFargateService
                 .Builder
@@ -67,12 +94,27 @@ public class Service02Stack extends Stack {
 
     }
 
+    @NotNull
+    private DeadLetterQueue buildDeadLetterQueue() {
+        Queue postEventsDlq = Queue.Builder.create(this, "PostEventsDlq")
+                .queueName("post-events-dlq")
+                .build();
+//        Criação da DLQ que será utilizado depois na construção da fila principal.
+        DeadLetterQueue deadLetterQueue = DeadLetterQueue.builder()
+//                Fila que representa a minha dlq
+                .queue(postEventsDlq)
+//                Quantidade máxima de tentativas para tratar a mensagem no consumidor, antes de ser enviada para DLQ
+                .maxReceiveCount(3)
+                .build();
+        return deadLetterQueue;
+    }
+
     private ApplicationLoadBalancedTaskImageOptions buildApplicationLoadBalancedTaskImageOptions() {
         return ApplicationLoadBalancedTaskImageOptions.builder()
 //                                Nome do container
                 .containerName("aws_instadev02_consumer")
 //                        Localização da nossa imagem, pegar do docker hub e adicionar a versão da tag que vou usar
-                .image(ContainerImage.fromRegistry("fcgeovane/aws_instadev02_consumer:1.0.1"))
+                .image(ContainerImage.fromRegistry("fcgeovane/aws_instadev02_consumer:1.0.2"))
 //                      Porta que a minha aplicação vai rodar
                 .containerPort(9090)
 //                      Onde que os logs da minha aplicação vão aparecer
