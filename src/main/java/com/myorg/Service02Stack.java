@@ -89,9 +89,9 @@ public class Service02Stack extends Stack {
 //        atender as requisições que estão chegando.
         buildAutoScaling(service02);
 
-//        Adiciono uma permissão no tópico de publicar (grantPublish)
-//        Quero dar essa permissão para a definição da tarefa do meu servico
-
+//        Atribuo a permissão para que esse serviço possa acessar e consumir as mensagens da fila.
+//        Garanto a permissão do papel do service02 para que ele possa consumir mensagens da fila.
+        postEventsQueue.grantConsumeMessages(service02.getTaskDefinition().getTaskRole());
     }
 
     @NotNull
@@ -114,7 +114,7 @@ public class Service02Stack extends Stack {
 //                                Nome do container
                 .containerName("aws_instadev02_consumer")
 //                        Localização da nossa imagem, pegar do docker hub e adicionar a versão da tag que vou usar
-                .image(ContainerImage.fromRegistry("fcgeovane/aws_instadev02_consumer:1.0.2"))
+                .image(ContainerImage.fromRegistry("fcgeovane/aws_instadev02_consumer:1.1.0"))
 //                      Porta que a minha aplicação vai rodar
                 .containerPort(9090)
 //                      Onde que os logs da minha aplicação vão aparecer
