@@ -3,6 +3,7 @@ package com.myorg;
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.core.*;
 import software.amazon.awscdk.services.applicationautoscaling.EnableScalingProps;
+import software.amazon.awscdk.services.dynamodb.Table;
 import software.amazon.awscdk.services.ecs.*;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedTaskImageOptions;
@@ -18,11 +19,15 @@ import java.util.Map;
 
 public class Service02Stack extends Stack {
 
-    public Service02Stack(final Construct scope, final String id, Cluster cluster, SnsTopic postEventsTopic) {
-        this(scope, id, null, cluster, postEventsTopic);
+//    Preciso configurar permissão para que este Service tenho acesso a tabela do DynamoDB.
+//    para isso ser possível eu preciso dizer que essa stack recebe uma tabela como parâmetro: Table postEventsDynamoDb.
+
+
+    public Service02Stack(final Construct scope, final String id, Cluster cluster, SnsTopic postEventsTopic, Table postEventsDynamoDb) {
+        this(scope, id, null, cluster, postEventsTopic, postEventsDynamoDb);
     }
 
-    public Service02Stack(final Construct scope, final String id, final StackProps props, Cluster cluster, SnsTopic postEventsTopic) {
+    public Service02Stack(final Construct scope, final String id, final StackProps props, Cluster cluster, SnsTopic postEventsTopic, Table postEventsDynamoDb) {
         super(scope, id, props);
 
 //        Fila responsável por receber as mensagens que não forem tratadas pelo nosso consumidor (deram exceções na hora de tratar)
@@ -92,6 +97,10 @@ public class Service02Stack extends Stack {
 //        Atribuo a permissão para que esse serviço possa acessar e consumir as mensagens da fila.
 //        Garanto a permissão do papel do service02 para que ele possa consumir mensagens da fila.
         postEventsQueue.grantConsumeMessages(service02.getTaskDefinition().getTaskRole());
+
+//        Atribuo a permissão de acesso a tabela do DynamoDB.
+//        Garanta a permissão de leitura e escrita para o papel que executa as tarefas deste Service
+        postEventsDynamoDb.grantReadWriteData(service02.getTaskDefinition().getTaskRole());
     }
 
     @NotNull

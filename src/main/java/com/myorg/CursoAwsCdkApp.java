@@ -44,7 +44,7 @@ public class CursoAwsCdkApp {
         DynamodbStack dynamodbStack = new DynamodbStack(app, "Dynamodb");
 
         Service02Stack service02Stack = new Service02Stack(app, "Service02",
-                clusterStack.getCluster(), snsStack.getPostEventsTopic());
+                clusterStack.getCluster(), snsStack.getPostEventsTopic(), dynamodbStack.getPostEventsDynamoDb());
         service02Stack.addDependency(clusterStack);
         service02Stack.addDependency(snsStack);
         service01Stack.addDependency(dynamodbStack);
