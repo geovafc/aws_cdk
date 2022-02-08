@@ -123,7 +123,7 @@ public class Service02Stack extends Stack {
 //                                Nome do container
                 .containerName("aws_instadev02_consumer")
 //                        Localização da nossa imagem, pegar do docker hub e adicionar a versão da tag que vou usar
-                .image(ContainerImage.fromRegistry("fcgeovane/aws_instadev02_consumer:1.1.0"))
+                .image(ContainerImage.fromRegistry("fcgeovane/aws_instadev02_consumer:1.3.1"))
 //                      Porta que a minha aplicação vai rodar
                 .containerPort(9090)
 //                      Onde que os logs da minha aplicação vão aparecer
